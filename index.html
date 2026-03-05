@@ -1652,25 +1652,26 @@ go build -o groq . && ./groq</pre>
           });
       }
       function dlz(e, id) {
-        e.preventDefault();
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(
-          new Blob([`# groq-CLI\n# https://github.com/devalvez/groq-CLI\n`], {
-            type: "text/plain",
-          }),
-        );
-        a.download =
-          "https://github.com/devalvez/groq-CLI/archive/refs/heads/main.zip";
-        a.click();
-        const b = document.getElementById(id);
-        if (b) {
-          const o = b.innerHTML;
-          b.innerHTML = "✓ Baixado!";
-          setTimeout(() => {
-            b.innerHTML = o;
-          }, 2500);
-        }
-      }
+  e.preventDefault();
+
+  const url = "https://github.com/devalvez/groq-CLI/archive/refs/heads/main.zip";
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "groq-cli.zip";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  const b = document.getElementById(id);
+  if (b) {
+    const o = b.innerHTML;
+    b.innerHTML = "✓ Baixado!";
+    setTimeout(() => {
+      b.innerHTML = o;
+    }, 2500);
+  }
+}
     </script>
   </body>
 </html>
