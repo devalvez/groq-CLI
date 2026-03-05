@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Groq CLI — Preview & Install</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --mint: #4ade80;
+        --mint-dim: #22c55e;
+        --mint-glo: rgba(74, 222, 128, 0.12);
+        --bg: #0a0a0a;
+        --surface: #0f0f0f;
+        --bdr: #1e1e1e;
+        --bdr2: #2a2a2a;
+        --gray: #444;
+        --mid: #888;
+        --white: #f0f0f0;
+        --warn: #facc15;
+        --f: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg);
+        font-family: var(--f);
+        color: var(--white);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-bottom: 80px;
+      }
+
+      /* ─── NAV ─────────────────────────────────────────────────────────── */
+      .nav {
+        width: 100%;
+        background: rgba(10, 10, 10, 0.96);
+        border-bottom: 1px solid var(--bdr);
+        backdrop-filter: blur(12px);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: center;
+        padding: 0 24px;
+      }
+      .nav-inner {
+        width: 100%;
+        max-width: 900px;
+        display: flex;
+        align-items: center;
+        height: 48px;
+      }
+      .nav-logo {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--mint);
+        letter-spacing: 0.05em;
+        margin-right: 32px;
+        white-space: nowrap;
+      }
+      .nav-logo span {
+        color: var(--mid);
+        font-weight: 400;
+      }
+      .nav-tab {
+        padding: 0 16px;
+        height: 48px;
+        line-height: 48px;
+        font: 11px var(--f);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--gray);
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .nav-tab:hover {
+        color: var(--mid);
+      }
+      .nav-tab.active {
+        color: var(--mint);
+        border-bottom-color: var(--mint);
+      }
+
+      .itab {
+        color: var(--mint) !important;
+        border: 1px solid var(--mint-dim) !important;
+        border-bottom: 2px solid transparent !important;
+        border-radius: 4px;
+        margin-left: 12px;
+        padding: 0 14px !important;
+        height: 30px !important;
+        line-height: 28px !important;
+        background: var(--mint-glo) !important;
+        font-weight: 700;
+        position: relative;
+        overflow: hidden;
+      }
+      .itab::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(74, 222, 128, 0.1),
+          transparent
+        );
+        animation: sh 2.5s infinite;
+      }
+      .itab:hover,
+      .itab.active {
+        background: rgba(74, 222, 128, 0.22) !important;
+        box-shadow: 0 0 16px rgba(74, 222, 128, 0.2);
+        border-color: var(--mint) !important;
+      }
+      @keyframes sh {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      /* ─── PAGES ───────────────────────────────────────────────────────── */
+      .page {
+        display: none;
+        width: 100%;
+        max-width: 900px;
+        padding: 40px 24px 0;
+      }
+      .page.active {
+        display: block;
+      }
+
+      /* ─── TERMINAL WINDOW ─────────────────────────────────────────────── */
+      .window {
+        background: var(--surface);
+        border: 1px solid var(--bdr);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
+      }
+      .tbar {
+        background: #161616;
+        border-bottom: 1px solid var(--bdr);
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .dr {
+        background: #ff5f57;
+      }
+      .dy {
+        background: #febc2e;
+      }
+      .dg {
+        background: #28c840;
+      }
+      .tbar-lbl {
+        flex: 1;
+        text-align: center;
+        font-size: 11px;
+        color: #3a3a3a;
+        letter-spacing: 0.1em;
+      }
+      .stabs {
+        display: flex;
+        border-bottom: 1px solid var(--bdr);
+        background: var(--surface);
+        overflow-x: auto;
+      }
+      .stab {
+        padding: 8px 20px;
+        font: 11px var(--f);
+        color: var(--gray);
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .stab:hover {
+        color: var(--mid);
+      }
+      .stab.active {
+        color: var(--mint);
+        border-bottom-color: var(--mint);
+      }
+      .scr {
+        display: none;
+      }
+      .scr.active {
+        display: block;
+      }
+
+      /* ─── TERMINAL CONTENT ────────────────────────────────────────────────
+   Key insight: the terminal is rendered as a <pre> block.
+   Inside it we use <span> only for color — NO layout spans.
+   Box rows use a flex row where:
+     • left border  = fixed-width <b> tag (monospace, so 1ch = 1 char wide)
+     • content      = <s> tag with flex:1
+     • right border = fixed-width <b> tag pushed right via margin-left:auto
+   The <pre> wrapper ensures every character is exactly 1ch wide.
+   ──────────────────────────────────────────────────────────────────── */
+
+      .term {
+        font: 13px/1.65 var(--f);
+        padding: 14px 0 22px;
+        max-height: 540px;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      .term::-webkit-scrollbar {
+        width: 4px;
+      }
+      .term::-webkit-scrollbar-thumb {
+        background: #222;
+        border-radius: 4px;
+      }
+
+      /* Every row in the terminal */
+      .row {
+        display: flex;
+        align-items: baseline;
+        min-height: 1.65em;
+        padding: 0 20px; /* uniform left+right margin for ALL rows */
+        white-space: pre;
+        font: inherit;
+      }
+      .row.gap {
+        min-height: 6px;
+      }
+
+      /* Plain text row — content is just a single span that fills everything */
+      .row .txt {
+        display: block;
+      }
+
+      /*
+  Box row — 3 rigid parts:
+    .lb  left border char(s)  — shrink:0, always "│  " (3 chars)
+    .bdy content              — flex:1, text goes here
+    .rb  right border char(s) — shrink:0, always "  │" (3 chars)
+
+  Because font is monospace and all three parts are siblings in the same
+  flex row, the │ characters always land at the same X position regardless
+  of how long .bdy is.
+*/
+      .row .lb {
+        flex-shrink: 0;
+        color: var(--gray);
+        /* "│  " = border + 2 spaces of inner padding */
+      }
+      .row .bdy {
+        flex: none;
+        overflow: hidden;
+        /* text lives here */
+      }
+      .row .rb {
+        flex-shrink: 0;
+        color: var(--gray);
+        /* "  │" = 2 spaces of inner padding + border */
+      }
+
+      /* ─── COLORS ──────────────────────────────────────────────────────── */
+      .cm {
+        color: var(--mint);
+        font-weight: 500;
+      }
+      .cmd {
+        color: var(--mint-dim);
+      }
+      .cw {
+        color: var(--white);
+      }
+      .cg {
+        color: var(--gray);
+      }
+      .cgm {
+        color: var(--mid);
+      }
+      .cu {
+        color: var(--white);
+        font-weight: 700;
+      }
+      .cwn {
+        color: var(--warn);
+      }
+      .cok {
+        color: var(--mint);
+        font-weight: 700;
+      }
+      .ccd {
+        color: var(--mint);
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 8px;
+        height: 13px;
+        background: var(--mint);
+        vertical-align: middle;
+        animation: bl 1s step-end infinite;
+        border-radius: 1px;
+        opacity: 0.85;
+      }
+      @keyframes bl {
+        0%,
+        100% {
+          opacity: 0.85;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* ─── INSTALL ─────────────────────────────────────────────────────── */
+      .ihero {
+        text-align: center;
+        padding: 48px 0 36px;
+        border-bottom: 1px solid var(--bdr);
+        margin-bottom: 40px;
+      }
+      .logo-a {
+        font-size: 10.5px;
+        line-height: 1.5;
+        color: var(--mint);
+        white-space: pre;
+        display: inline-block;
+        margin-bottom: 20px;
+      }
+      .ihero h1 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--white);
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+      }
+      .ihero p {
+        font-size: 12px;
+        color: var(--mid);
+        line-height: 1.7;
+      }
+      .ihero p a {
+        color: var(--mint-dim);
+        text-decoration: none;
+      }
+      .ihero p a:hover {
+        color: var(--mint);
+      }
+      .brow {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+      .bdg {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        padding: 3px 10px;
+        border-radius: 3px;
+        border: 1px solid var(--bdr2);
+        color: var(--mid);
+      }
+      .bdg.g {
+        border-color: var(--mint-dim);
+        color: var(--mint);
+      }
+      .dlw {
+        text-align: center;
+        margin-top: 28px;
+      }
+      .dlb {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--mint-glo);
+        border: 1px solid var(--mint-dim);
+        color: var(--mint);
+        font: 700 12px var(--f);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 12px 28px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+      }
+      .dlb::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(74, 222, 128, 0.1),
+          transparent
+        );
+        animation: sh 2s infinite;
+      }
+      .dlb:hover {
+        background: rgba(74, 222, 128, 0.2);
+        box-shadow: 0 0 24px rgba(74, 222, 128, 0.25);
+        transform: translateY(-1px);
+      }
+      .dln {
+        font-size: 10px;
+        color: var(--gray);
+        margin-top: 8px;
+        letter-spacing: 0.05em;
+      }
+
+      .mth {
+        margin-bottom: 44px;
+      }
+      .mhdr {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--bdr);
+      }
+      .mnum {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        background: var(--mint-glo);
+        border: 1px solid var(--mint-dim);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--mint);
+        flex-shrink: 0;
+      }
+      .mtit {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--white);
+        letter-spacing: 0.04em;
+      }
+      .mtit span {
+        color: var(--mint);
+      }
+      .rbdg {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 3px;
+        background: var(--mint-glo);
+        border: 1px solid var(--mint-dim);
+        color: var(--mint);
+        margin-left: 8px;
+      }
+
+      .sps {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .sp {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .spn {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid var(--bdr2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: var(--mid);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .spb {
+        flex: 1;
+      }
+      .spl {
+        font-size: 12px;
+        color: var(--mid);
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+      .spl strong {
+        color: var(--white);
+        font-weight: 500;
+      }
+      .spl a {
+        color: var(--mint-dim);
+        text-decoration: none;
+      }
+      .spl a:hover {
+        color: var(--mint);
+      }
+
+      .cb {
+        background: #0d0d0d;
+        border: 1px solid var(--bdr);
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 4px;
+      }
+      .cbh {
+        background: #111;
+        border-bottom: 1px solid var(--bdr);
+        padding: 6px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .cbl {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--gray);
+        text-transform: uppercase;
+      }
+      .cpb {
+        font: 10px var(--f);
+        color: var(--gray);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        padding: 2px 8px;
+        border-radius: 3px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .cpb:hover {
+        color: var(--mint);
+        background: var(--mint-glo);
+      }
+      .cpb.ok {
+        color: var(--mint);
+      }
+      .cb pre {
+        padding: 14px 16px;
+        font: 12px/1.7 var(--f);
+        overflow-x: auto;
+        white-space: pre;
+        color: var(--white);
+      }
+      .cb pre .c {
+        color: var(--gray);
+        font-style: italic;
+      }
+      .cb pre .m {
+        color: var(--mint);
+      }
+
+      .prow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .prq {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid var(--bdr2);
+        font-size: 11px;
+        color: var(--mid);
+      }
+      .prq .d {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--mint);
+      }
+      .prq.dim .d {
+        background: #333;
+      }
+      .prq.dim {
+        color: #555;
+        border-color: #1a1a1a;
+      }
+
+      .dts {
+        display: flex;
+        gap: 2px;
+      }
+      .dt {
+        padding: 6px 14px;
+        font: 10px var(--f);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--gray);
+        background: #0d0d0d;
+        border: 1px solid var(--bdr);
+        border-bottom: none;
+        cursor: pointer;
+        transition: color 0.15s;
+        border-radius: 4px 4px 0 0;
+      }
+      .dt.active {
+        color: var(--mint);
+        border-color: var(--bdr2);
+        background: #111;
+      }
+      .dp {
+        display: none;
+      }
+      .dp.active {
+        display: block;
+      }
+
+      .nb {
+        background: #0d1a11;
+        border: 1px solid #1a3a22;
+        border-left: 3px solid var(--mint);
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 11px;
+        color: var(--mid);
+        line-height: 1.7;
+        margin-top: 16px;
+      }
+      .nb strong {
+        color: var(--mint);
+      }
+      .nb code {
+        background: rgba(74, 222, 128, 0.08);
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: var(--mint-dim);
+        font-size: 11px;
+      }
+
+      hr.sep {
+        border: none;
+        border-top: 1px solid var(--bdr);
+        margin: 36px 0;
+      }
+
+      .bnote {
+        max-width: 900px;
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px 18px;
+        background: #111;
+        border: 1px solid var(--bdr);
+        border-left: 3px solid var(--mint);
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--gray);
+        line-height: 1.7;
+      }
+      .bnote strong {
+        color: var(--mint);
+        font-weight: 500;
+      }
+      .bnote code {
+        background: rgba(74, 222, 128, 0.08);
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: var(--mint-dim);
+      }
+      .slbl {
+        font-size: 11px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--gray);
+        margin-bottom: 14px;
+      }
+      .slbl span {
+        color: var(--mint);
+      }
+
+      .fieldsets {
+        width: 600px;
+        margin-left: 40px;
+        padding: 5px 5px 10px 15px;
+        border: 1px solid var(--gray);
+        margin-bottom: 40px;
+      }
+      .fieldsets legend {
+        padding: 0px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <div class="nav-logo">◆ groq<span>-cli</span></div>
+        <div style="display: flex; align-items: center; flex: 1">
+          <button class="nav-tab active" onclick="showPage('preview', this)">
+            Preview
+          </button>
+          <button class="nav-tab itab" onclick="showPage('install', this)">
+            ⬇ Install
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════ PREVIEW PAGE -->
+    <div class="page active" id="page-preview">
+      <p class="slbl" style="padding-top: 32px">
+        ◆ <span>Interface</span> Preview
+      </p>
+
+      <div class="window">
+        <div class="tbar">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="tbar-lbl">groq — terminal</span>
+        </div>
+        <div class="stabs">
+          <button class="stab active" onclick="showScr('chat', this)">
+            Chat
+          </button>
+          <button class="stab" onclick="showScr('long', this)">
+            Resposta Longa
+          </button>
+          <button class="stab" onclick="showScr('crte', this)">Create</button>
+          <button class="stab" onclick="showScr('welc', this)">Welcome</button>
+        </div>
+
+        <!-- ══════ CHAT ══════ -->
+        <div class="scr active" id="scr-chat">
+          <div class="term">
+            <div class="row"><span class="txt cg">──────────────────────────────────────────────────────────────────────────</span></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">CHAT SESSION</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> · model </span
+                ><span class="cw">llama-3.3-70b-versatile</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> · type </span><span class="ccd">/help</span
+                ><span class="cg"> para comandos · </span
+                ><span class="ccd">/exit</span
+                ><span class="cg"> para sair</span></span
+              >
+            </div>
+            <div class="row"><span class="txt cg">──────────────────────────────────────────────────────────────────────────</span></div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> → </span
+                ><span class="cw">O que é uma goroutine em Go?</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+
+            <fieldset class="fieldsets">
+              <legend>you</legend>
+              <span class="bdy cgm">O que é uma goroutine em Go?</span>
+            </fieldset>
+
+            <fieldset class="fieldsets">
+              <legend class="cm">◆ groq [llama-3.3-70b-versatile]</legend>
+              <span class="bdy cw"
+                >Uma goroutine é uma função que executa de forma concorrente com
+                outras</span
+              >
+              <span class="bdy cw"
+                >goroutines dentro do mesmo espaço de endereçamento. Ela é
+                iniciada com</span
+              >
+              <span class="bdy cw"
+                >a palavra-chave `go` seguida de uma chamada de função:</span
+              >
+              <span class="bdy cw"> go minhaFuncao()</span>
+              <br /><br /><br />
+              <span class="bdy cw"
+                >Diferente de threads do SO, goroutines são extremamente leves —
+                cada</span
+              >
+              <span class="bdy cw"
+                >uma começa com apenas ~2KB de stack. O runtime do Go pode
+                gerenciar</span
+              >
+              <span class="bdy cw"
+                >milhões delas simultaneamente em poucos threads do
+                sistema.</span
+              >
+            </fieldset>
+            <div class="row">
+              <span class="txt cg"> · 2 messages in context</span>
+            </div>
+
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> → </span><span class="cursor"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════ LONG ══════ -->
+        <div class="scr" id="scr-long">
+          <div class="term">
+            <div class="row"><span class="txt cg">──────────────────────────────────────────────────────────────────────────</span></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">CHAT SESSION</span></span
+              >
+            </div>
+            <div class="row"><span class="txt cg">──────────────────────────────────────────────────────────────────────────</span></div>
+            <div class="row gap"></div>
+
+            <fieldset class="fieldsets">
+              <legend>you</legend>
+              <span class="bdy cgm"
+                >Explique como funciona o garbage collector do Go, incluindo as
+                fases</span
+              >
+              <span class="bdy cgm"
+                >de marcação, varrimento e como ele minimiza pausas no
+                programa.</span
+              >
+            </fieldset>
+
+            <div class="row gap"></div>
+
+            <fieldset class="fieldsets">
+              <legend class="cm">◆ groq [llama-3.3-70b-versatile]</legend>
+              <span class="bdy cw"
+                >O GC do Go é um coletor tricolor concorrente de mark-and-sweep
+                que</span
+              >
+              <span class="bdy cw"
+                >opera em paralelo com o programa para minimizar pausas
+                STW.</span
+              >
+
+              <span class="bdy cw">1. FASE DE MARCAÇÃO</span>
+              <span class="bdy cw">
+                Inicia com breve pausa STW para ativar write barriers.
+                Percorre</span
+              >
+              <span class="bdy cw">
+                o grafo a partir das raízes com algoritmo tricolor: branco
+                →</span
+              >
+              <span class="bdy cw">
+                cinza (descoberto) → preto (todos os filhos escaneados).</span
+              >
+              <br /><br /><br />
+              <span class="bdy cw">2. WRITE BARRIER</span>
+              <span class="bdy cw">
+                Intercepta ponteiros escritos no heap. Garante o
+                invariante:</span
+              >
+              <span class="bdy cw">
+                nenhum objeto preto aponta para um objeto branco.</span
+              >
+              <br /><br /><br />
+              <span class="bdy cw">3. FASE DE VARRIMENTO</span>
+              <span class="bdy cw">
+                Objetos brancos são lixo. Sweep ocorre de forma lazy —
+                páginas</span
+              >
+              <span class="bdy cw">
+                limpas sob demanda, evitando pausa longa única.</span
+              >
+              <br /><br /><br />
+              <span class="bdy cw"
+                >Target padrão: pausas STW abaixo de 1ms. Ajuste via
+                GOGC=100.</span
+              >
+            </fieldset>
+
+            <div class="row">
+              <span class="txt cg"> · 2 messages in context</span>
+            </div>
+
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> → </span><span class="cursor"></span
+              ></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════ CREATE ══════ -->
+        <div class="scr" id="scr-crte">
+          <div class="term">
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">GENERATING PROJECT</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> · description </span
+                ><span class="cw"
+                  >REST API em Go com PostgreSQL e autenticação JWT</span
+                ></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> · output </span
+                ><span class="cw">./rest-api-go-postgresql</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> · model </span
+                ><span class="cw">llama-3.3-70b-versatile</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">PROJECT PLAN</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ name </span
+                ><span class="cw">rest-api-go-postgresql</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ language </span
+                ><span class="cw">Go</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ run </span
+                ><span class="ccd">go run ./cmd/server</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row"><span class="txt cg"> ◆ FILES (9)</span></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cmd">cmd/server/main.go </span
+                ><span class="cg">1.2 KB</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cmd">internal/handlers/auth.go </span
+                ><span class="cg">2.8 KB</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cmd">internal/middleware/jwt.go </span
+                ><span class="cg">1.1 KB</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cmd">internal/database/postgres.go </span
+                ><span class="cg">0.9 KB</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cmd">go.mod · .gitignore · README.md </span
+                ><span class="cg">2.0 KB</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cwn"
+                  >create 9 files in ./rest-api-go-postgresql? [y/N] </span
+                ><span class="cw">y</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">WRITING FILES</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ [✓] </span
+                ><span class="cw">cmd/server/main.go</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ [✓] </span
+                ><span class="cw">internal/handlers/auth.go</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ [✓] </span
+                ><span class="cw">internal/middleware/jwt.go</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ [✓] </span
+                ><span class="cw">go.mod / .gitignore / README.md</span></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cok"> ◆ done — project created</span>
+            </div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="ccd"
+                  >cd rest-api-go-postgresql && go run ./cmd/server</span
+                ></span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════ WELCOME ══════ -->
+        <div class="scr" id="scr-welc">
+          <div class="term">
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt cm">
+                ______ ______ ______ ______ ______ __ __</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cmd">
+                /\ ___\/\ == \/\ __ \/\ __ \ /\ ___\/\ \ /\ \</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cm">
+                \ \ \__ \ \ __&lt;\ \ \/\ \ \ \/\_\ \ \ \___\ \ \___\ \ \</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cmd">
+                \ \_____\ \_\ \_\ \_____\ \___\_\ \ \_____\ \_____\ \_\</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cm">
+                \/_____/\/_/ /_/\/_____/\/___/_/ \/_____/\/_____/\/_/</span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cw">Ultra-fast LLM inference</span
+                ><span class="cg"> · Powered by Groq AI · </span
+                ><span class="cm">v1.0.0</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ built by </span
+                ><span class="cw">Wesley Alves </span
+                ><span class="cm">(Devalvez)</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">COMMANDS</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span><span class="cm">groq chat </span
+                ><span class="cg">start interactive AI chat session</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cm">groq chat "question" </span
+                ><span class="cg">send a single message and exit</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cm">groq create "project" </span
+                ><span class="cg"
+                  >generate a full project from description</span
+                ></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span
+                ><span class="cm">groq run "task" </span
+                ><span class="cg"
+                  >execute a task with AI-generated code</span
+                ></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span><span class="cm">groq models </span
+                ><span class="cg">list all available Groq models</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ▸ </span><span class="cm">groq config </span
+                ><span class="cg"
+                  >manage configuration &amp; API key</span
+                ></span
+              >
+            </div>
+            <div class="row gap"></div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> ◆ </span
+                ><span class="cm">QUICK START</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> [</span><span class="cm">01</span
+                ><span class="cg">] get a free API key </span
+                ><span class="ccd">https://console.groq.com</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> [</span><span class="cm">02</span
+                ><span class="cg">] save your key </span
+                ><span class="ccd">groq config set-key YOUR_KEY</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> [</span><span class="cm">03</span
+                ><span class="cg">] start chatting </span
+                ><span class="ccd">groq chat</span></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> docs </span
+                ><span class="cmd"
+                  >https://console.groq.com/docs/overview</span
+                ></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt"
+                ><span class="cg"> github </span
+                ><span class="cmd"
+                  >https://github.com/devalvez/groq-CLI</span
+                ></span
+              >
+            </div>
+            <div class="row">
+              <span class="txt cg">
+                ──────────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /window -->
+
+      <div class="bnote">
+        <strong>◆ Word-wrap</strong> — respostas longas são quebradas
+        automaticamente dentro das bordas <code>┌─ … └─</code>.<br />
+        <strong>◆ Cópia limpa</strong> — use <code>--plain</code> ou
+        <code>--copy</code> para texto sem bordas.
+      </div>
+    </div>
+    <!-- /page-preview -->
+
+    <!-- ═══════════════════════════════════════ INSTALL PAGE -->
+    <div class="page" id="page-install">
+      <div class="ihero">
+        <pre class="logo-a">
+   ______  ______  ______  ______     ______  __      __
+  /\  ___\/\  == \/\  __ \/\  __ \   /\  ___\/\ \    /\ \
+  \ \ \__ \ \  __&lt;\ \ \/\ \ \ \/\_\  \ \ \___\ \ \___\ \ \
+   \ \_____\ \_\ \_\ \_____\ \___\_\  \ \_____\ \_____\ \_\
+    \/_____/\/_/ /_/\/_____/\/___/_/   \/_____/\/_____/\/_/</pre
+        >
+        <h1>Groq CLI — Instalação</h1>
+        <p>
+          Terminal CLI alimentado por
+          <a href="https://console.groq.com" target="_blank">Groq AI</a> · built
+          by <strong style="color: #f0f0f0">Wesley Alves</strong>
+          <span style="color: var(--mint)">(Devalvez)</span>
+        </p>
+        <div class="brow">
+          <span class="bdg g">Go 1.21+</span><span class="bdg g">Linux</span>
+          <span class="bdg g">macOS</span><span class="bdg">MIT License</span
+          ><span class="bdg">v1.0.0</span>
+        </div>
+        <div class="dlw">
+          <a class="dlb" id="dl-hero" href="#" onclick="dlz(event, 'dl-hero')">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download groq-cli.zip
+          </a>
+          <p class="dln">Código fonte completo · Go 1.21+ · ~50 KB</p>
+        </div>
+      </div>
+
+      <div class="mth">
+        <div class="mhdr">
+          <div class="mnum">!</div>
+          <div class="mtit">Pré-requisitos</div>
+        </div>
+        <div class="prow">
+          <div class="prq">
+            <div class="d"></div>
+            Go 1.21+
+          </div>
+          <div class="prq">
+            <div class="d"></div>
+            Linux ou macOS
+          </div>
+          <div class="prq">
+            <div class="d"></div>
+            API key Groq
+          </div>
+          <div class="prq dim">
+            <div class="d"></div>
+            xclip / wl-copy (opcional)
+          </div>
+        </div>
+        <p style="font-size: 11px; color: var(--mid); margin-bottom: 14px">
+          Instale o Go:
+        </p>
+        <div class="dts">
+          <button class="dt active" onclick="showDt('ubuntu', this)">
+            Ubuntu/Debian
+          </button>
+          <button class="dt" onclick="showDt('fedora', this)">Fedora</button>
+          <button class="dt" onclick="showDt('arch', this)">Arch</button>
+          <button class="dt" onclick="showDt('macos', this)">macOS</button>
+        </div>
+        <div class="dp active" id="dt-ubuntu">
+          <div class="cb">
+            <div class="cbh">
+              <span class="cbl">bash</span
+              ><button class="cpb" onclick="cp(this)">copiar</button>
+            </div>
+            <pre><span class="c"># Via apt</span>
+sudo apt update && sudo apt install -y golang-go
+
+<span class="c"># Versão mais recente</span>
+wget https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
+echo <span class="m">'export PATH=$PATH:/usr/local/go/bin'</span> >> ~/.bashrc
+source ~/.bashrc && go version</pre>
+          </div>
+        </div>
+        <div class="dp" id="dt-fedora">
+          <div class="cb">
+            <div class="cbh">
+              <span class="cbl">bash</span
+              ><button class="cpb" onclick="cp(this)">copiar</button>
+            </div>
+            <pre>sudo dnf install -y golang && go version</pre>
+          </div>
+        </div>
+        <div class="dp" id="dt-arch">
+          <div class="cb">
+            <div class="cbh">
+              <span class="cbl">bash</span
+              ><button class="cpb" onclick="cp(this)">copiar</button>
+            </div>
+            <pre>sudo pacman -S go && go version</pre>
+          </div>
+        </div>
+        <div class="dp" id="dt-macos">
+          <div class="cb">
+            <div class="cbh">
+              <span class="cbl">bash</span
+              ><button class="cpb" onclick="cp(this)">copiar</button>
+            </div>
+            <pre>brew install go && go version</pre>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep" />
+
+      <div class="mth">
+        <div class="mhdr">
+          <div class="mnum">1</div>
+          <div>
+            <div class="mtit">
+              Instalar via <span>git clone</span>
+              <span class="rbdg">recomendado</span>
+            </div>
+          </div>
+        </div>
+        <div class="sps">
+          <div class="sp">
+            <div class="spn">1</div>
+            <div class="spb">
+              <p class="spl"><strong>Clone o repositório</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>
+git clone https://github.com/devalvez/groq-CLI.git
+cd groq-CLI</pre
+                >
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="spn">2</div>
+            <div class="spb">
+              <p class="spl"><strong>Execute o instalador</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>chmod +x install.sh && ./install.sh</pre>
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="spn">3</div>
+            <div class="spb">
+              <p class="spl">
+                <strong>Configure sua API key</strong> —
+                <a href="https://console.groq.com" target="_blank"
+                  >console.groq.com</a
+                >
+              </p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>groq config set-key gsk_xxxxxxxxxxxxxxxxxxxxxxxx</pre>
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="spn">4</div>
+            <div class="spb">
+              <p class="spl"><strong>Pronto!</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>groq
+groq chat <span class="m">"Olá!"</span></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep" />
+
+      <div class="mth">
+        <div class="mhdr">
+          <div class="mnum">2</div>
+          <div>
+            <div class="mtit">Instalar via <span>arquivo .zip</span></div>
+          </div>
+        </div>
+        <div class="dlw" style="margin-bottom: 28px">
+          <a class="dlb" id="dl-zip" href="#" onclick="dlz(event, 'dl-zip')">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download groq-cli.zip
+          </a>
+        </div>
+        <div class="sps">
+          <div class="sp">
+            <div class="spn">1</div>
+            <div class="spb">
+              <p class="spl"><strong>Baixe via terminal</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>
+wget https://github.com/devalvez/groq-CLI/archive/refs/heads/main.zip -O groq-cli.zip</pre
+                >
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="spn">2</div>
+            <div class="spb">
+              <p class="spl"><strong>Extraia e instale</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>
+unzip groq-cli.zip && cd groq-CLI-main
+chmod +x install.sh && ./install.sh</pre
+                >
+              </div>
+            </div>
+          </div>
+          <div class="sp">
+            <div class="spn">3</div>
+            <div class="spb">
+              <p class="spl"><strong>Configure e use</strong></p>
+              <div class="cb">
+                <div class="cbh">
+                  <span class="cbl">bash</span
+                  ><button class="cpb" onclick="cp(this)">copiar</button>
+                </div>
+                <pre>groq config set-key gsk_xxxxxxxxxxxxxxxxxxxxxxxx
+groq chat <span class="m">"O que é Go?"</span></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="sep" />
+
+      <div class="mth">
+        <div class="mhdr">
+          <div class="mnum">3</div>
+          <div>
+            <div class="mtit">Build <span>manual</span></div>
+          </div>
+        </div>
+        <div class="cb">
+          <div class="cbh">
+            <span class="cbl">bash</span
+            ><button class="cpb" onclick="cp(this)">copiar</button>
+          </div>
+          <pre>go mod tidy && make && make install
+
+<span class="c"># sem Make</span>
+go build -ldflags=<span class="m">"-s -w"</span> -o groq . && sudo mv groq /usr/local/bin/</pre>
+        </div>
+      </div>
+
+      <hr class="sep" />
+
+      <div class="mth">
+        <div class="mhdr">
+          <div class="mnum">→</div>
+          <div>
+            <div class="mtit">Testar <span>sem instalar</span></div>
+          </div>
+        </div>
+        <div class="cb">
+          <div class="cbh">
+            <span class="cbl">bash</span
+            ><button class="cpb" onclick="cp(this)">copiar</button>
+          </div>
+          <pre>go mod tidy && go run . chat <span class="m">"Olá!"</span>
+
+<span class="c"># compilar local</span>
+go build -o groq . && ./groq</pre>
+        </div>
+        <div class="nb">
+          <strong>◆ Clipboard</strong> — necessário apenas para
+          <code>groq chat --copy</code>.<br />
+          Ubuntu: <code>sudo apt install xclip</code> · Fedora:
+          <code>sudo dnf install xclip</code> · Arch:
+          <code>sudo pacman -S xclip</code> · Wayland:
+          <code>sudo apt install wl-clipboard</code>
+        </div>
+      </div>
+    </div>
+    <!-- /page-install -->
+
+    <script>
+      function showPage(id, btn) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("page-" + id).classList.add("active");
+        btn.classList.add("active");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function showScr(id, btn) {
+        document
+          .querySelectorAll(".scr")
+          .forEach((s) => s.classList.remove("active"));
+        document
+          .querySelectorAll(".stab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("scr-" + id).classList.add("active");
+        btn.classList.add("active");
+      }
+      function showDt(id, btn) {
+        document
+          .querySelectorAll(".dp")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".dt")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("dt-" + id).classList.add("active");
+        btn.classList.add("active");
+      }
+      function cp(btn) {
+        navigator.clipboard
+          .writeText(btn.closest(".cb").querySelector("pre").innerText)
+          .then(() => {
+            btn.textContent = "copiado ✓";
+            btn.classList.add("ok");
+            setTimeout(() => {
+              btn.textContent = "copiar";
+              btn.classList.remove("ok");
+            }, 2000);
+          })
+          .catch(() => {
+            btn.textContent = "erro";
+            setTimeout(() => {
+              btn.textContent = "copiar";
+            }, 2000);
+          });
+      }
+      function dlz(e, id) {
+        e.preventDefault();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(
+          new Blob([`# groq-CLI\n# https://github.com/devalvez/groq-CLI\n`], {
+            type: "text/plain",
+          }),
+        );
+        a.download =
+          "https://github.com/devalvez/groq-CLI/archive/refs/heads/main.zip";
+        a.click();
+        const b = document.getElementById(id);
+        if (b) {
+          const o = b.innerHTML;
+          b.innerHTML = "✓ Baixado!";
+          setTimeout(() => {
+            b.innerHTML = o;
+          }, 2500);
+        }
+      }
+    </script>
+  </body>
+</html>
